@@ -6,6 +6,13 @@ init(autoreset=True)
 
 # add logging config
 
+logging.basicConfig(
+    filename='app.log',
+    filemode='a',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
 menu_choices = [
     "1. Download YouTube video as MP3",
     "2. Download YouTube video as MP3 with metadata embedded",
@@ -45,7 +52,8 @@ def command_two():
     link = input(
         "Please enter the link(s) you would like to download (space in between links): ")
 
-    cmd = ["yt-dlp", "-f", "bestvideo+bestaudio", link]
+    cmd = ["yt-dlp", "--extract-audio", "--audio-format",
+           "mp3", "--audio-quality", "0", "--embed-metadata", link]
     print_command(cmd)
 
     run_process(cmd)
@@ -143,7 +151,7 @@ def command_nine():
 
 def command_ten():
     link = input(
-        "Please ente the link of the video you would like to download: ")
+        "Please enter the link of the video you would like to download: ")
     cmd = ["yt-dlp", "-j", link]
     print_command(cmd)
 
@@ -162,8 +170,7 @@ def command_eleven():
 def print_choice(answer):
 
     if int(answer) != 99:
-        print(f"You chose: {Fore.BLUE}{
-              menu_choices[int(answer) - 1]}")
+        print(f"You chose: {Fore.BLUE}{menu_choices[int(answer) - 1]}")
 
 
 def process_response(answer):
@@ -198,10 +205,13 @@ def process_response(answer):
 
 def run_process(cmd):
     try:
+        logging.info(f"Running command: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         print(f"{Fore.GREEN}Download completed successfully.")
+        logging.info("Download completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"{Fore.RED}An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
 
 
 def print_command(cmd):
