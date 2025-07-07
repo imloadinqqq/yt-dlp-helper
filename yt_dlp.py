@@ -1,6 +1,10 @@
 import subprocess
 import logging
+import os
 from colorama import init, Fore, Style
+
+cookie_path = None
+download_path = "./output"
 
 init(autoreset=True)
 
@@ -25,6 +29,7 @@ menu_choices = [
     "9. Download YouTube video with thumbnail (embedded)",
     "10. Download YouTube video metadata as JSON",
     "11. Download YouTube video with metadata embedded",
+    "98. Change cookie path",
     "99. Exit"
 ]
 
@@ -204,9 +209,16 @@ def process_response(answer):
 
 
 def run_process(cmd):
+    global cookie_path, download_path
     try:
-        logging.info(f"Running command: {' '.join(cmd)}")
-        subprocess.run(cmd, check=True)
+        final_cmd = cmd[:]
+        if cookie_path:
+            final_cmd = ["yt-dlp", "--cookies", cookie_path] + final_cmd[1:]
+        if download_path:
+            final_cmd = final_cmd[:1] + ["-P", download_path] + final_cmd[1:]
+
+        logging.info(f"Running command: {' '.join(final_cmd)}")
+        subprocess.run(final_cmd, check=True)
         print(f"{Fore.GREEN}Download completed successfully.")
         logging.info("Download completed successfully.")
     except subprocess.CalledProcessError as e:
@@ -219,18 +231,80 @@ def print_command(cmd):
         Fore.BLUE}{' '.join(cmd)}")
 
 
-def main():
-    print("Hello! Please choose from the menu")
+def change_cookie_path():
+    global cookie_path
+    print(f"Your current path is {Fore.BLUE}{cookie_path}")
+    path = input("Please enter your new cookie path: ").strip()
+
+    if os.path.exists(path):
+        cookie_path = path
+        print(f"New cookie path set to: {Fore.BLUE}{cookie_path}")
+    else:
+        print(f"{Fore.RED}That file does not exist. Path not updated.")
+
+
+def ask_download_path():
+    global download_path
+
     while True:
-        answer = (int(ask()))
-        if answer > len(menu_choices):
-            if answer == 99:
+        path = input(
+            "Enter the directory where you want to save downloads: ").strip()
+        if path == "":
+            print(f"{Fore.RED}You must provide a download directory!")
+            continue
+        elif os.path.exists(path):
+            download_path = path
+            print(f"Download path set to: {Fore.BLUE}{download_path}")
+            break
+        else:
+            try:
+                os.makedirs(path)
+                download_path = path
+                print(f"{Fore.YELLOW}Directory created. Download path set to: {
+                      Fore.BLUE}{download_path}")
+                break
+            except Exception as e:
+                print(f"{Fore.RED}Failed to create directory: {e}")
+
+
+def main():
+    global cookie_path
+
+    # cookie path loop
+    while True:
+        path = input("Enter the path to your cookies.txt file: ").strip()
+        if path == "":
+            print(f"{Fore.RED}You must provide a cookie file!")
+            continue
+        elif os.path.exists(path):
+            cookie_path = path
+            print(f"Cookie path set to: {Fore.BLUE}{cookie_path}")
+            break
+        else:
+            print(f"{Fore.RED}File does not exist. Please try again.")
+
+    print("Hello! Please choose from the menu")
+
+    # ask loop
+    while True:
+        try:
+            answer = int(ask())
+
+            if answer == 98:
+                change_cookie_path()
+                continue
+            elif answer == 99:
                 print("Goodbye!")
                 break
-            print(f"{Fore.RED}Invalid choice!")
-            continue
-        print_choice(answer)
-        process_response(answer)
+            elif answer < 1 or answer > len(menu_choices):
+                print(f"{Fore.RED}Invalid choice!")
+                continue
+
+            print_choice(answer)
+            process_response(answer)
+
+        except ValueError:
+            print(f"{Fore.RED}Please enter a valid number.")
 
 
 if __name__ == "__main__":
